@@ -107,11 +107,3 @@ named `<sample> chr1.csv`, `<sample> chr2.csv`, `<sample> pES100.csv` (the repli
 - Triage labels are rules of thumb for sorting a list, not verdicts. Confirm candidates in the aligned reads and
   by PCR/Sanger sequencing.
 - Gene-level convergence estimates assume equal mutation probability per gene and ignore gene length.
-
-## Data availability
-
-No sequencing data are committed to this repository. [FILL IN: accessions for raw reads and assemblies.]
-
-## License
-
-MIT (see `LICENSE`). [CONFIRM against your institution's policy before publishing.]
