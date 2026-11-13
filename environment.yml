@@ -1,0 +1,20 @@
+# Conda environment for the whole workflow.
+# The k-mer, subtraction and conversion scripts need only python + numpy + pandas.
+# The remaining tools are used by scripts/run_variant_calling.sh (an untested reconstruction).
+# Plasmidsaurus's stated versions are in the comments; pins are NOT verified to exist on bioconda,
+# so install unpinned first and record what you got in <sample>.versions.txt (the script writes it).
+name: vibrio-evo
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.10
+  - numpy
+  - pandas
+  - filtlong      # Plasmidsaurus: v0.2.1
+  - minimap2      # Plasmidsaurus: v2.30
+  - samtools
+  - bcftools
+  - snpeff        # Plasmidsaurus: v5.4.0
+  - sniffles      # structural variants (the supplied SV tables are labelled sniffles2; version unknown)
+  - clair3        # Plasmidsaurus: v2.0.2 with a bacteria-tuned model. Installing from a container is often easier.
