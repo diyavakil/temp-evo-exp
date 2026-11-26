@@ -1,0 +1,83 @@
+import shlex
+import sys
+from shared.intervaltree.intervaltree import IntervalTree
+
+from shared.utils import subprocess_popen
+
+
+def bed_tree_from(bed_file_path, expand_region=None, contig_name=None, bed_ctg_start=None, bed_ctg_end=None,
+                  return_bed_region=False, padding=None):
+    """
+    0-based interval tree [start, end)
+    """
+
+    tree = {}
+    if bed_file_path is None:
+        if return_bed_region:
+            return tree, None, None
+        return tree
+
+    bed_start, bed_end = float('inf'), 0
+    unzip_process = subprocess_popen(shlex.split("pigz -fdc -p 2 %s" % (bed_file_path)))
+    for row_id, row in enumerate(unzip_process.stdout):
+        if row[0] == '#':
+            continue
+        columns = row.strip().split()
+
+        ctg_name = columns[0]
+        if contig_name != None and ctg_name != contig_name:
+            continue
+        if ctg_name not in tree:
+            tree[ctg_name] = IntervalTree()
+
+        ctg_start, ctg_end = int(columns[1]), int(columns[2])
+
+        if ctg_end < ctg_start or ctg_start < 0 or ctg_end < 0:
+            sys.exit("[ERROR] Invalid bed input in {}-th row {} {} {}".format(row_id+1, ctg_name, ctg_start, ctg_end))
+
+        if bed_ctg_start and bed_ctg_end:
+            if ctg_end < bed_ctg_start or ctg_start > bed_ctg_end:
+                continue
+        if padding:
+            ctg_start += padding
+            ctg_end -= padding
+        bed_start = min(ctg_start, bed_start)
+        bed_end = max(ctg_end, bed_end)
+        if ctg_start == ctg_end:
+            ctg_end += 1
+
+        tree[ctg_name].addi(ctg_start, ctg_end)
+
+    unzip_process.stdout.close()
+    unzip_process.wait()
+    if return_bed_region:
+        return tree, bed_start, bed_end
+    return tree
+
+
+def is_region_in(tree, contig_name, region_start=None, region_end=None):
+    if not tree or (contig_name is None) or (contig_name not in tree):
+        return False
+
+    interval_tree = tree[contig_name]
+    return len(
+        interval_tree.at(region_start)
+        if region_end is None else
+        interval_tree.overlap(begin=region_start, end=region_end)
+    ) > 0
+
+
+def is_position_in_bed(tree, contig_name, position):
+    """Check a 1-based position (VCF convention) against a 0-based half-open BED tree.
+
+    BED intervals are 0-based and half-open, so the 1-based base `position`
+    covers [position - 1, position). Querying the tree with `position` directly
+    tests the base after the variant instead: it drops variants on the last base
+    of an interval and deletions whose first deleted base falls outside the BED
+    (issue #489).
+    """
+    if not tree or (contig_name is None) or (contig_name not in tree):
+        return False
+
+    start = int(position) - 1
+    return is_region_in(tree, contig_name, start, start + 1)
